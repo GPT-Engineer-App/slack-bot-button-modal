@@ -1,0 +1,115 @@
+import os
+from slack_bolt import App
+from slack_bolt.adapter.socket_mode import SocketModeHandler
+
+app = App(token=os.environ["SLACK_BOT_TOKEN"])
+
+@app.command("/new_project")
+def open_modal(ack, body, client):
+    ack()
+    client.views_open(
+        trigger_id=body["trigger_id"],
+        view={
+            "type": "modal",
+            "callback_id": "project_form",
+            "title": {"type": "plain_text", "text": "新しいプロジェクト"},
+            "submit": {"type": "plain_text", "text": "送信"},
+            "close": {"type": "plain_text", "text": "キャンセル"},
+            "blocks": [
+                {
+                    "type": "input",
+                    "block_id": "title_block",
+                    "element": {
+                        "type": "plain_text_input",
+                        "action_id": "title_input",
+                        "placeholder": {"type": "plain_text", "text": "プロジェクトのタイトルを入力してください"}
+                    },
+                    "label": {"type": "plain_text", "text": "タイトル"}
+                },
+                {
+                    "type": "input",
+                    "block_id": "notes_block",
+                    "element": {
+                        "type": "plain_text_input",
+                        "action_id": "notes_input",
+                        "multiline": True,
+                        "placeholder": {"type": "plain_text", "text": "備考を入力してください"}
+                    },
+                    "label": {"type": "plain_text", "text": "備考"}
+                }
+            ]
+        }
+    )
+
+@app.view("project_form")
+def handle_submission(ack, body, view, say):
+    ack()
+    title = view["state"]["values"]["title_block"]["title_input"]["value"]
+    notes = view["state"]["values"]["notes_block"]["notes_input"]["value"]
+    
+    print(f"タイトル: {title}")
+    print(f"備考: {notes}")
+    
+    say("プロジェクトが作成されました！")
+
+@app.message("hello")
+def message_hello(message, say):
+    say(
+        blocks=[
+            {
+                "type": "section",
+                "text": {"type": "mrkdwn", "text": f"こんにちは <@{message['user']}>！"}
+            },
+            {
+                "type": "actions",
+                "elements": [
+                    {
+                        "type": "button",
+                        "text": {"type": "plain_text", "text": "新しいプロジェクト"},
+                        "action_id": "new_project_button"
+                    }
+                ]
+            }
+        ],
+        text=f"こんにちは <@{message['user']}>！"
+    )
+
+@app.action("new_project_button")
+def handle_button_click(ack, body, client):
+    ack()
+    client.views_open(
+        trigger_id=body["trigger_id"],
+        view={
+            "type": "modal",
+            "callback_id": "project_form",
+            "title": {"type": "plain_text", "text": "新しいプロジェクト"},
+            "submit": {"type": "plain_text", "text": "送信"},
+            "close": {"type": "plain_text", "text": "キャンセル"},
+            "blocks": [
+                {
+                    "type": "input",
+                    "block_id": "title_block",
+                    "element": {
+                        "type": "plain_text_input",
+                        "action_id": "title_input",
+                        "placeholder": {"type": "plain_text", "text": "プロジェクトのタイトルを入力してください"}
+                    },
+                    "label": {"type": "plain_text", "text": "タイトル"}
+                },
+                {
+                    "type": "input",
+                    "block_id": "notes_block",
+                    "element": {
+                        "type": "plain_text_input",
+                        "action_id": "notes_input",
+                        "multiline": True,
+                        "placeholder": {"type": "plain_text", "text": "備考を入力してください"}
+                    },
+                    "label": {"type": "plain_text", "text": "備考"}
+                }
+            ]
+        }
+    )
+
+if __name__ == "__main__":
+    SocketModeHandler(app, os.environ["SLACK_APP_TOKEN"]).start()
